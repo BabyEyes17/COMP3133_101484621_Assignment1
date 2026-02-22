@@ -16,7 +16,7 @@ const resolvers = require("./graphql/resolvers");
 // Starting the server
 async function startServer() {
     
-    
+
 
     // Connecting to MongoDB
     const uri = process.env.MONGO_URI;
@@ -34,7 +34,7 @@ async function startServer() {
     const server = new ApolloServer({ typeDefs, resolvers });
     await server.start();
     server.applyMiddleware({ app });
-
+    
 
 
     // Starting Express

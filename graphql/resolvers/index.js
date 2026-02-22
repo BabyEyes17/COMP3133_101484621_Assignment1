@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../../models/User");
 const Employee = require("../../models/Employee");
+const cloudinary = require("../../utils/cloudinary");
 
 const resolvers = {
     
@@ -99,9 +100,23 @@ const resolvers = {
 
         addEmployee: async (_, { input }) => {
             
+            let photoUrl = input.employee_photo || null;
+
+            if (photoUrl) {
+                
+                const uploadResult = await cloudinary.uploader.upload(photoUrl, {
+                    
+                    folder: "comp3133/employees"
+                });
+
+                photoUrl = uploadResult.secure_url;
+            }
+
             const employee = await Employee.create({
+                
                 ...input,
-                date_of_joining: new Date(input.date_of_joining),
+                employee_photo: photoUrl,
+                date_of_joining: new Date(input.date_of_joining)
             });
 
             return employee;
@@ -115,6 +130,15 @@ const resolvers = {
 
             if (update.date_of_joining) {
                 update.date_of_joining = new Date(update.date_of_joining);
+            }
+
+            if (update.employee_photo) {
+                
+                const uploadResult = await cloudinary.uploader.upload(update.employee_photo, {
+                    folder: "comp3133/employees"
+                });
+
+                update.employee_photo = uploadResult.secure_url;
             }
 
             return await Employee.findByIdAndUpdate(id, update, { new: true });
