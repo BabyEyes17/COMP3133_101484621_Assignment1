@@ -20,6 +20,9 @@ const typeDefs = gql`
         salary: Float!
         department: String!
         employee_photo: String
+        date_of_joining: String
+        created_at: String
+        updated_at: String
     }
 
     input SignupInput {
@@ -34,6 +37,30 @@ const typeDefs = gql`
         password: String!
     }
 
+    input AddEmployeeInput {
+        first_name: String!
+        last_name: String!
+        email: String!
+        gender: String
+        designation: String!
+        salary: Float!
+        department: String!
+        employee_photo: String
+        date_of_joining: String!
+    }
+
+    input UpdateEmployeeInput {
+        first_name: String
+        last_name: String
+        email: String
+        gender: String
+        designation: String
+        salary: Float
+        department: String
+        employee_photo: String
+        date_of_joining: String
+    }
+
     type AuthResponse {
         success: Boolean!
         message: String
@@ -43,10 +70,25 @@ const typeDefs = gql`
 
     type Query {
         login(input: LoginInput!): AuthResponse
+
+        getAllEmployees: [Employee]
+
+        searchEmployeeById(id: ID!): Employee
+
+        searchEmployeeByDeptOrDesignation(
+            department: String
+            designation: String
+        ): [Employee]
     }
 
     type Mutation {
         signup(input: SignupInput!): AuthResponse
+
+        addEmployee(input: AddEmployeeInput!): Employee
+
+        updateEmployeeById(id: ID!, input: UpdateEmployeeInput!): Employee
+
+        deleteEmployeeById(id: ID!): Employee
     }
 `;
 
