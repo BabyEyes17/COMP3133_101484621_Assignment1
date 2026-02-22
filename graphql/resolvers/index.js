@@ -2,22 +2,22 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const User = require("../../models/User");
+const Employee = require("../../models/Employee");
 
 const resolvers = {
-
-
+    
+    
     
     Query: {
+        
+
 
         login: async (_, { input }) => {
             
             const { username, email, password } = input;
 
             const user = await User.findOne({
-                $or: [
-                    { username: username },
-                    { email: email }
-                ]
+                $or: [{ username: username }, { email: email }]
             });
 
             if (!user) {
@@ -35,14 +35,39 @@ const resolvers = {
                 message: "Login successful",
                 user
             };
-        }
+        },
 
+
+
+        getAllEmployees: async () => { 
+            return await Employee.find().sort({ created_at: -1 });
+        },
+
+
+
+        searchEmployeeById: async (_, { id }) => {
+            return await Employee.findById(id);
+        },
+
+        searchEmployeeByDeptOrDesignation: async (_, { department, designation }) => {
+            
+            const filters = [];
+
+            if (department) filters.push({ department });
+            if (designation) filters.push({ designation });
+
+            if (filters.length === 0) return [];
+
+            return await Employee.find({ $or: filters }).sort({ created_at: -1 });
+        }
     },
 
 
 
     Mutation: {
-
+        
+        
+        
         signup: async (_, { input }) => {
             
             const { username, email, password } = input;
@@ -68,10 +93,61 @@ const resolvers = {
                 message: "Signup successful",
                 user
             };
+        },
+
+
+
+        addEmployee: async (_, { input }) => {
+            
+            const employee = await Employee.create({
+                ...input,
+                date_of_joining: new Date(input.date_of_joining),
+            });
+
+            return employee;
+        },
+
+
+        
+        updateEmployeeById: async (_, { id, input }) => {
+            
+            const update = { ...input };
+
+            if (update.date_of_joining) {
+                update.date_of_joining = new Date(update.date_of_joining);
+            }
+
+            return await Employee.findByIdAndUpdate(id, update, { new: true });
+        },
+
+
+        
+        deleteEmployeeById: async (_, { id }) => {
+            return await Employee.findByIdAndDelete(id);
         }
+    },
 
+
+
+    Employee: {
+        
+        date_of_joining: (employee) => employee.date_of_joining ? employee.date_of_joining.toISOString() : null,
+        
+        created_at: (employee) => employee.created_at ? employee.created_at.toISOString() : null,
+        
+        updated_at: (employee) => employee.updated_at ? employee.updated_at.toISOString() : null,
+    },
+
+
+
+    User: {
+        
+        created_at: (user) => (user.created_at ? user.created_at.toISOString() : null),
+        
+        updated_at: (user) => (user.updated_at ? user.updated_at.toISOString() : null),
     }
-
 };
+
+
 
 module.exports = resolvers;
