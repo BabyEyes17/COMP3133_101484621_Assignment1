@@ -2,32 +2,21 @@ require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
-const { ApolloServer, gql } = require("apollo-server-express");
+const { ApolloServer } = require("apollo-server-express");
 const app = express();
 
 
 
-// Graphql testing
-const typeDefs = gql`
-    
-    type Query {
-        hello: String
-    }
-`;
-
-const resolvers = {
-    
-    Query: {
-        hello: () => "Server is working!",
-    },
-};
+// Graphql
+const typeDefs = require("./graphql/schema/typeDefs");
+const resolvers = require("./graphql/resolvers");
 
 
 
 // Starting the server
 async function startServer() {
     
-
+    
 
     // Connecting to MongoDB
     const uri = process.env.MONGO_URI;
@@ -49,9 +38,9 @@ async function startServer() {
 
 
     // Starting Express
-    const port = process.env.port || 4000;
+    const port = process.env.PORT || 4000;
 
-    app.listen(4000, async () => {
+    app.listen(port, () => {
     
         const url = "http://localhost:4000/graphql";
         console.log(`Server running at ${url}`);
