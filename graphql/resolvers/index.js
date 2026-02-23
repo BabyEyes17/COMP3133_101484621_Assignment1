@@ -4,6 +4,44 @@ const jwt = require("jsonwebtoken");
 const User = require("../../models/User");
 const Employee = require("../../models/Employee");
 const cloudinary = require("../../utils/cloudinary");
+const { signupRules, employeeRules, updateEmployeeRules, runValidation } = require("../../utils/validators");
+
+
+
+const createToken = (user) => {
+    
+    const secret = process.env.JWT_SECRET;
+    
+    if (!secret) return null;
+
+    return jwt.sign(
+        
+        { sub: user._id.toString(), username: user.username, email: user.email }, secret, { expiresIn: "1d" }
+    );
+};
+
+
+
+const uploadEmployeePhotoIfPresent = async (employee_photo) => {
+    
+    if (!employee_photo) return null;
+
+    const value = String(employee_photo).trim();
+    if (!value) return null;
+
+    const isDataUri = value.startsWith("data:image/");
+    const isHttpUrl = /^https?:\/\/.+/i.test(value);
+
+    if (!isDataUri && !isHttpUrl) {
+        throw new Error("employee_photo must be a public URL or a base64 data URI (data:image/...)");
+    }
+
+    const uploadResult = await cloudinary.uploader.upload(value, {
+        folder: "comp3133/employees"
+    });
+
+    return uploadResult.secure_url;
+};
 
 const resolvers = {
     
@@ -11,40 +49,45 @@ const resolvers = {
     
     Query: {
         
-
-
+        
+        
         login: async (_, { input }) => {
             
             const { username, email, password } = input;
 
-            const user = await User.findOne({
-                $or: [{ username: username }, { email: email }]
-            });
+            const orFilters = [];
+            
+            if (username) orFilters.push({ username });
+
+            if (email) orFilters.push({ email });
+
+            if (orFilters.length === 0) {
+                return { success: false, message: "Provide username or email", user: null, token: null };
+            }
+
+            const user = await User.findOne({ $or: orFilters });
 
             if (!user) {
-                return { success: false, message: "User not found" };
+                return { success: false, message: "User not found", user: null, token: null };
             }
 
             const valid = await bcrypt.compare(password, user.password);
 
             if (!valid) {
-                return { success: false, message: "Invalid password" };
+                return { success: false, message: "Invalid password", user: null, token: null };
             }
 
             return {
                 success: true,
                 message: "Login successful",
-                user
+                user,
+                token: createToken(user)
             };
         },
 
-
-
-        getAllEmployees: async () => { 
+        getAllEmployees: async () => {
             return await Employee.find().sort({ created_at: -1 });
         },
-
-
 
         searchEmployeeById: async (_, { id }) => {
             return await Employee.findById(id);
@@ -56,7 +99,6 @@ const resolvers = {
 
             if (department) filters.push({ department });
             if (designation) filters.push({ designation });
-
             if (filters.length === 0) return [];
 
             return await Employee.find({ $or: filters }).sort({ created_at: -1 });
@@ -71,6 +113,12 @@ const resolvers = {
         
         signup: async (_, { input }) => {
             
+            const error = await runValidation(signupRules, input);
+            
+            if (error) {
+                return { success:false, message:error };
+            }
+
             const { username, email, password } = input;
 
             const existing = await User.findOne({
@@ -89,10 +137,11 @@ const resolvers = {
                 password: hashed
             });
 
-            return {
+            return { 
                 success: true,
                 message: "Signup successful",
-                user
+                user,
+                token: createToken(user)
             };
         },
 
@@ -100,55 +149,89 @@ const resolvers = {
 
         addEmployee: async (_, { input }) => {
             
-            let photoUrl = input.employee_photo || null;
-
-            if (photoUrl) {
-                
-                const uploadResult = await cloudinary.uploader.upload(photoUrl, {
-                    
-                    folder: "comp3133/employees"
-                });
-
-                photoUrl = uploadResult.secure_url;
+            const error = await runValidation(employeeRules, input);
+            
+            if (error) {
+                return { success: false, message: error, employee: null };
             }
 
-            const employee = await Employee.create({
+            try {
                 
-                ...input,
-                employee_photo: photoUrl,
-                date_of_joining: new Date(input.date_of_joining)
-            });
+                const photoUrl = await uploadEmployeePhotoIfPresent(input.employee_photo);
 
-            return employee;
+                const employee = await Employee.create({
+                    
+                    ...input,
+                    employee_photo: photoUrl,
+                    date_of_joining: new Date(input.date_of_joining)
+                });
+
+                return { success: true, message: "Employee created", employee };
+            }
+
+            catch (e) {
+                return { success: false, message: e.message || "Failed to create employee", employee: null };
+            }
         },
 
 
         
         updateEmployeeById: async (_, { id, input }) => {
             
-            const update = { ...input };
-
-            if (update.date_of_joining) {
-                update.date_of_joining = new Date(update.date_of_joining);
+            const error = await runValidation(updateEmployeeRules, input);
+            
+            if (error) {
+                return { success: false, message: error, employee: null };
             }
 
-            if (update.employee_photo) {
+            try {
                 
-                const uploadResult = await cloudinary.uploader.upload(update.employee_photo, {
-                    folder: "comp3133/employees"
-                });
+                const update = { ...input };
 
-                update.employee_photo = uploadResult.secure_url;
+                if (update.date_of_joining) {
+                    update.date_of_joining = new Date(update.date_of_joining);
+                }
+
+                if (Object.prototype.hasOwnProperty.call(update, "employee_photo")) {
+                    
+                    const uploaded = await uploadEmployeePhotoIfPresent(update.employee_photo);
+
+                    update.employee_photo = uploaded;
+                }
+
+                const updated = await Employee.findByIdAndUpdate(id, update, { new: true });
+                
+                if (!updated) {
+                    return { success: false, message: "Employee not found", employee: null };
+                }
+
+                return { success: true, message: "Employee updated", employee: updated };
+            } 
+            
+            catch (e) {
+                return { success: false, message: e.message || "Failed to update employee", employee: null };
             }
-
-            return await Employee.findByIdAndUpdate(id, update, { new: true });
         },
 
 
         
         deleteEmployeeById: async (_, { id }) => {
-            return await Employee.findByIdAndDelete(id);
-        }
+            
+            try {
+                
+                const deleted = await Employee.findByIdAndDelete(id);
+                
+                if (!deleted) {
+                    return { success: false, message: "Employee not found", employee: null };
+                }
+
+                return { success: true, message: "Employee deleted", employee: deleted };
+            } 
+            
+            catch (e) {
+                return { success: false, message: e.message || "Failed to delete employee", employee: null };
+            }
+        },
     },
 
 

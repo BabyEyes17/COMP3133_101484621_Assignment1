@@ -2,7 +2,10 @@ const { gql } = require("apollo-server-express");
 
 const typeDefs = gql`
 
+
+
     type User {
+        
         _id: ID!
         username: String!
         email: String!
@@ -10,7 +13,10 @@ const typeDefs = gql`
         updated_at: String
     }
 
+
+
     type Employee {
+        
         _id: ID!
         first_name: String!
         last_name: String!
@@ -25,19 +31,28 @@ const typeDefs = gql`
         updated_at: String
     }
 
+
+
     input SignupInput {
+        
         username: String!
         email: String!
         password: String!
     }
 
+
+
     input LoginInput {
+        
         username: String
         email: String
         password: String!
     }
 
+
+
     input AddEmployeeInput {
+        
         first_name: String!
         last_name: String!
         email: String!
@@ -49,7 +64,10 @@ const typeDefs = gql`
         date_of_joining: String!
     }
 
+
+
     input UpdateEmployeeInput {
+        
         first_name: String
         last_name: String
         email: String
@@ -61,14 +79,38 @@ const typeDefs = gql`
         date_of_joining: String
     }
 
+
+
     type AuthResponse {
+        
         success: Boolean!
         message: String
         user: User
         token: String
     }
 
+
+
+    type EmployeeResponse {
+
+        success: Boolean!
+        message: String!
+        employee: Employee
+    }
+
+
+
+    type EmployeeListResponse {
+    
+        success: Boolean!
+        message: String!
+        employees: [Employee!]!
+    }
+
+
+
     type Query {
+        
         login(input: LoginInput!): AuthResponse
 
         getAllEmployees: [Employee]
@@ -81,14 +123,17 @@ const typeDefs = gql`
         ): [Employee]
     }
 
+
+    
     type Mutation {
+        
         signup(input: SignupInput!): AuthResponse
 
-        addEmployee(input: AddEmployeeInput!): Employee
+        addEmployee(input: AddEmployeeInput!): EmployeeResponse!
 
-        updateEmployeeById(id: ID!, input: UpdateEmployeeInput!): Employee
+        updateEmployeeById(id: ID!, input: UpdateEmployeeInput!): EmployeeResponse!
 
-        deleteEmployeeById(id: ID!): Employee
+        deleteEmployeeById(id: ID!): EmployeeResponse!
     }
 `;
 

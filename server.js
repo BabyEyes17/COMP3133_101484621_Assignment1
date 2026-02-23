@@ -38,16 +38,12 @@ async function startServer() {
 
 
     // Starting Express
-    const port = process.env.PORT || 4000;
+    const port = process.env.PORT;
 
     app.listen(port, () => {
     
-        const url = "http://localhost:4000/graphql";
+        const url = `http://localhost:${port}/graphql`;
         console.log(`Server running at ${url}`);
-    
-        // Automatically open webpage
-        console.log(`Opening ${url} in your browser.`)
-        require("child_process").exec(`start ${url}`);
     });
 }
 
