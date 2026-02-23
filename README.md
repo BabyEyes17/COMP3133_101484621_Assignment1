@@ -41,6 +41,31 @@ Student ID: 101484621<br>
 
 ## Validation Rules
 
+### User Signup
+- `username` is required and must be unique.
+- `email` is required and must be unique.
+- `password` is required and stored in encrypted (hashed) form.
+
+### Employee Creation / Update
+- `first_name` is required.
+- `last_name` is required.
+- `email` must be unique.
+- `gender` must be one of: `Male`, `Female`, or `Other`.
+- `designation` is required.
+- `salary` is required and must be greater than or equal to 1000.
+- `date_of_joining` is required and must be a valid date.
+- `department` is required.
+- `employee_photo` stores the image URL/path (uploaded via Cloudinary).
+
+### Authentication
+- Users can log in using either username or email along with their password.
+
+### Search
+- Employees can be searched by:
+    - Employee ID
+    - Designation
+    - Department
+- Searching by designation or department accepts either field (or both).
 
 ## Project Setup
 
